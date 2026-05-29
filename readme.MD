@@ -46,3 +46,32 @@ L server.py             : 백엔드, fastapi
         # 맥
         source llm_venv\bin\activate
     ```
+- .gitignore 내용 세팅
+    - 가상환경 배제
+    ```  
+        ...
+        # 가상환경제외
+        llm_venv
+    ```
+- 패키지 설치
+    ```
+        (llm_venv)> pip install -r requirements.txt
+    ```
+    ```
+        # 백엔드 구성, bedrock 호출
+        fastapi
+        # fastapi 구동
+        uvicorn
+        # 프런트 구성
+        streamlit
+        # 프런트 -> 백엔드 요청
+        requests
+        # AWS SDK
+        boto3
+        # 랭체인 AWS 전용
+        langchain-aws
+        # 랭체인 코어 라이브러리
+        langchain-core
+        # 환경변수, .env 로드
+        python-dotenv
+    ```
