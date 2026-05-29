@@ -75,3 +75,21 @@ L server.py             : 백엔드, fastapi
         # 환경변수, .env 로드
         python-dotenv
     ```
+
+# 환경변수
+- .env
+    ```
+        AWS_REGION=us-east-1
+        MODEL_ID=google.gemma-3-27b-it
+        AWS_BEARER_TOKEN_BEDROCK=...
+    ```
+
+# 구동
+- 백엔드 : server.py
+    ```
+        uvicorn server:app --reload --port 8000
+    ```
+    - 테스트 
+        - http://127.0.0.1:8000/chat post 방식 요청
+        
+- 프런트
