@@ -51,7 +51,7 @@ if prompt := st.chat_input('현재 상황을 자세하게 입력하세요..'):
         res = req.post(API_URL, json={"query":prompt})
         # 200 체크
         if res.status_code == 200: # 응답 성공
-            result = res.json()
+            result = res.json().get('response', '일시적 장애입니다.잠시후 다시 시도해주세요')
         else:
             result = f'서버측 오류 {res.status_code}'
     except Exception as e:
