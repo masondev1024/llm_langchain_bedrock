@@ -91,5 +91,8 @@ L server.py             : 백엔드, fastapi
     ```
     - 테스트 
         - http://127.0.0.1:8000/chat post 방식 요청
-        
-- 프런트
+
+- 프런트 : app.py
+    ```
+        streamlit run app.py
+    ```
