@@ -47,7 +47,7 @@ prompt = ChatPromptTemplate.from_template('''
 만약, 문맥에서 답을 찾을 수 없다면, "잘 모르겠음"고 대답 하세요.
                                           
 <context>
-{ context }
+{context}
 <context>
                                           
 질문: {user_input}
@@ -79,7 +79,7 @@ rag_chain = (
 )
 
 # 실행
-query = '해리포터의 적은?'
+query = '해리포터의 가장 친한 친구 2명은?'
 res   = rag_chain.invoke( query )
 
 print('== AI 답변 ==')
