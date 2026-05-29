@@ -26,4 +26,23 @@
     - Agent
     - A2A
 
-# 
+# 구조
+/
+L .env                  : 환경변수, bedrock 키
+L .gitignore            : 가상환경, .env 등 추가하여 git 미반영
+L requirements.txt      : 패키지
+L app.py                : 프런트, streamlit
+L server.py             : 백엔드, fastapi
+
+# 세팅
+- 가상환경 구축
+    ```
+        python -m venv llm_venv        
+    ```
+- 활성화
+    ```
+        # 윈도우
+        .\llm_venv\Scripts\activate
+        # 맥
+        source llm_venv\bin\activate
+    ```
