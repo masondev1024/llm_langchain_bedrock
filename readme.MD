@@ -33,6 +33,7 @@ L .gitignore            : 가상환경, .env 등 추가하여 git 미반영
 L requirements.txt      : 패키지
 L app.py                : 프런트, streamlit
 L server.py             : 백엔드, fastapi
+L llm/__init__.py             : bedrock 통신 모듈
 
 # 세팅
 - 가상환경 구축

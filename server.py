@@ -6,11 +6,20 @@
 '''
 # 1. 모듈 가져오기
 from fastapi import FastAPI
+# 입력폼 유효성 검사, 구조 정의
+from pydantic import BaseModel
+# LLM 모듈
+import llm
 
 # 2. fastapi 객체 생성
 app = FastAPI(title='식사 메뉴 추천 AI')
 
-# 3. API 구성
+# 요청 데이터 구조 정의 
+class UserRequest(BaseModel):
+    query:str
+
+# API 구성
 @app.post('/chat')
-async def chat():
-    return "돈까스"
+async def chat( req:UserRequest ):
+    # LLM 호출
+    return f"돈까스 {req.query}"
