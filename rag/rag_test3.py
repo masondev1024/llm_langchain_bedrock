@@ -42,3 +42,45 @@ llm = ChatBedrock(
 )
 
 # 7. prompt 구성
+prompt = ChatPromptTemplate.from_template('''
+다음의 제공된 context(문맥, 참고)을 사용하여 질문에 답변해 주세요.
+만약, 문맥에서 답을 찾을 수 없다면, "잘 모르겠음"고 대답 하세요.
+                                          
+<context>
+{ context }
+<context>
+                                          
+질문: {user_input}
+''')
+
+# 8. 체인구성
+# 리트리버 (참고 문서 개수 세팅)
+retriever = vector_db.as_retriever( search_kwargs={"k":3} ) # 유사도가 높은 문서(청크)를 상위 3개를 참조
+# 문서 결합 함수 (커스텀 기능 구성)
+def format_docs( docs ):
+    # 3개의 청크를 => 1개의 말뭉치 합치기
+    '''
+        청크1 -> 유사도 1등
+        
+
+        청크2 -> 유사도 2등
+
+
+        청크3 -> 유사도 3등
+    '''
+    return "\n\n".join( doc.page_content for doc in docs )
+
+# 각종 기능을 결합 -> 랭체인 파이프라인 구성 LCEL 문법 -> | 사용 열거
+rag_chain = (
+    {"context":retriever | format_docs, "user_input":RunnablePassthrough() }
+    | prompt
+    | llm 
+    | StrOutputParser()
+)
+
+# 실행
+query = '해리포터의 적은?'
+res   = rag_chain.invoke( query )
+
+print('== AI 답변 ==')
+print( res )
