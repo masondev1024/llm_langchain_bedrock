@@ -47,3 +47,25 @@ fewshot_samples = [
         "output": "일주일 동안 정말 고생 많으셨어요! 스트레스를 한 방에 날려줄 **'마라탕과 꿔바로우 소(小)'**를 추천합니다. 원하는 재료를 듬뿍 넣어 아주 매운 단계로 즐겨보세요. 얼얼한 매운맛이 엔도르핀을 돌게 해줄 거예요. 시원한 캔맥주 하나 사서 집에서 넷플릭스를 보며 드시는 건 어떨까요?"
     }
 ]
+
+# few-shot => 컨버전 포멧
+fewshot_samples_format = ChatPromptTemplate.from_messages([
+  ('human', '{input}'),
+  ('ai',    '{output}')
+])
+
+# few-shot => 컨버전 완료
+fewshot_prompt = FewShotChatMessagePromptTemplate(
+  examples       = fewshot_samples,
+  example_prompt = fewshot_samples_format
+)
+
+# few-shot포함 최종 프럼프트 완료
+last_prompt = ChatPromptTemplate.from_messages([
+  ('system', '당신은 직장인들의 식사 메뉴 고민을 해결해 주는 계획적인 "메뉴 추천 마스터"입니다. 상황에 맞게 계획적으로 메뉴를 추천해 주세요'), # 페르소나
+  fewshot_prompt, # 샘플
+  ('human',  '{user_input}')
+])
+
+# 6. chain 구성 (프럼프트 => 추론 모델)
+chain = last_prompt | llm
