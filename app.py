@@ -1,5 +1,8 @@
 import streamlit as st
+import requests as req
 
+# 환경변수, 상수
+API_URL = 'http://localhost:8000/chat'
 # 프런트 외관
 st.set_page_config(page_title='식사 메뉴 해결사')
 st.title('AI 식사 메뉴 해결사 - KING')
@@ -42,3 +45,24 @@ if prompt := st.chat_input('현재 상황을 자세하게 입력하세요..'):
         msg_holder.markdown( '심각한 고민중 ㅡ,.ㅡ^..' )
 
     # 2. 실제 LLM에게 질의 -> FASTAPI 요청 ~/chat
+    result = None
+    try:
+        # 요청
+        res = req.post(API_URL, json={"query":prompt})
+        # 200 체크
+        if res.status_code == 200: # 응답 성공
+            result = res.json()
+        else:
+            result = f'서버측 오류 {res.status_code}'
+    except Exception as e:
+        print( e )
+        result = f'오류 {e}'
+    
+    # 화면처리
+    msg_holder.markdown( result )
+
+    # 대화 내용 추가
+    st.session_state.messages.append({
+        'role'   :'assistant',
+        'content': result
+    })
