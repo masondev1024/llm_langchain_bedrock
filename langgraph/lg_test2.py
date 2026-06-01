@@ -17,9 +17,13 @@ load_dotenv()
 
 # 3. LLM 추론용 객체 생성(전역변수)
 #    모델별로 ChatBedrock or ChatBedrockConverse 교체 적용
-llm = ChatBedrock(model  = os.getenv['MODEL_ID'], 
+#    ChatBedrockConverse => us.anthropic.claude-haiku-4-5-20251001-v1:0
+llm = ChatBedrockConverse(model  = os.getenv('MODEL_ID'), 
                   client = boto3.client( 'bedrock-runtime', region_name=os.getenv('AWS_REGION') ) 
                 )
+#llm = ChatBedrock(model  = os.getenv('MODEL_ID'), 
+#                  client = boto3.client( 'bedrock-runtime', region_name=os.getenv('AWS_REGION') ) 
+#                )
 
 # 4. 툴 준비
 @tool # LLM이 알수 있는(이해할수 있는) 형식으로 자동 변환됨
@@ -62,9 +66,11 @@ workflow.add_conditional_edges(
 workflow.add_edge('tools', 'chatbot') # tools -> chatbot
 '''
 # 사이클 구성
-- 질의 -> chatbot -> llm 호출 -> 응답 -> end
-- 질의 -> chatbot -> llm 호출 -> 응답 -> 부족하고 생각 -> 도구 사용 필요성 
-      -> 툴 -> 툴사용 -> 결과 -> chatbot -> llm 호출 -> 응답 -> end
+- openai (bedrock) 경우
+    - 질의 -> chatbot -> llm 호출 -> 응답 -> end
+- 클로드 (bedrock) 경우
+    - 질의 -> chatbot -> llm 호출 -> 응답 -> 부족하고 생각 -> 도구 사용 필요성 
+          -> 툴 -> 툴사용 -> 결과 -> chatbot -> llm 호출 -> 응답 -> end
 '''
 # 그래프 실행가능하게 구성 
 app = workflow.compile()
@@ -77,3 +83,17 @@ if __name__ == '__main__':
         user_input = input('\n유저: ').lower()
         # 2. 탈출 코드
         if user_input== 'q': break
+        # 3. 프럼프트 구성
+        prompt = { "messages":[ HumanMessage(content=user_input) ]  }
+        print( prompt )
+        # 4. 그래프 작동( invoke: 동기식, stream:비동기식 )
+        for evt in app.stream( prompt, stream_mode='values'):
+            msg = evt['messages'][-1] # 마지막에 추가된 응답 내용
+            print( "Agent", msg.content ) # 출력(실시간 계속 출력)
+
+'''
+openai.gpt-oss-120b-1:0 : LLM에서 직접 추론하여 응답. 도구 사용 x
+us.anthropic.claude-haiku-4-5-20251001-v1:0 : 도구 사용 했음. LLM 2회 추론 행위 있었음
+- 현재는 프럼프트 입력 => 새 채팅창 컨셉 => 단기 기억 x => 이전 대화 내용을 기억해서 프럼프트에 전달 x (이전 컨셉)
+- 메모리 적용 -> 같은 내용에 대해서 반복 작업 x
+'''
