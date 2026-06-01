@@ -65,3 +65,42 @@ final_prompt    = ChatPromptTemplate.from_messages([
     # 3. 사용자 질문
     ('human', '{messages}')
 ])
+
+# 랭그래프 상태 구성
+class AgentState(TypedDict):
+    messages: List[ BaseMessage ]
+
+# 노드 정의
+# 사용자의 질의(대화)를 보고, 생각하는 단계 구성 (메뉴 추천, 도구 사용 결정)
+def thinking_node( state:AgentState ):
+    pass
+
+# 툴, 도구를 사용하기로 결정했다면, 실제 도구 제공 -> 외부기능 -> .... => MCP 연계 
+def tool_node( state:AgentState ):
+    pass
+
+# 검색 결과를 바탕으로 최종 답변 추론
+# 실제는 다시 thinking_node로 다시 가서 최종 구성해도됨.
+def final_answer_node( state:AgentState ):
+    pass
+
+# 랭그래프 연결
+workflow = StateGraph(AgentState)
+workflow.add_node('thinking',       thinking_node)
+workflow.add_node('tool',           tool_node)
+workflow.add_node('final_answer',   final_answer_node)
+workflow.set_entry_point(thinking_node) # 최초 프럼프트를 가지고 추론 진행(직접 ok, 도구 ok)
+# 조건부 엣지
+# LLM 호출을 통해서 답변 마무리, 도구를 이용하여 마무리 할지등
+def custom_check_tool_node(state:AgentState):
+    pass
+workflow.add_conditional_edges('thinking', custom_check_tool_node)
+workflow.add_edge('tool', 'final_answer') # 도구 사용 => 최종답변노드, 방향성설정
+workflow.add_edge("final_answer", END)    # 그래프이 끝 지정
+
+# 흐름 시나리오
+# 프럼프트 => thinking => END
+# 프럼프트 => thinking => 부족함 => tool => rag => final_answer => END
+
+# 랭그래프객체
+랭그래프객체 = workflow.compile()
