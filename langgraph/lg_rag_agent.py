@@ -63,7 +63,7 @@ final_prompt    = ChatPromptTemplate.from_messages([
     # 2. 퓨샷 샘플
     few_shot_prompt
     # 3. 사용자 질문
-    ('human', '{messages}')
+    ('human', '{query}')
 ])
 
 # 랭그래프 상태 구성
@@ -73,7 +73,14 @@ class AgentState(TypedDict):
 # 노드 정의
 # 사용자의 질의(대화)를 보고, 생각하는 단계 구성 (메뉴 추천, 도구 사용 결정)
 def thinking_node( state:AgentState ):
-    pass
+    # 사용자 입력내용 추출(획득)
+    msg = state['messages']  # 사용자 -> UI -> 입력 -> 엔터 -> 서버 -> 랭그래프객체.invoke(프럼프트)
+    # 랭체인 구성 (일반향) : 퓨샷 프럼프트(페르소나, 샘플 구성되어 있음)
+    chain    = final_prompt | llm_with_tools
+    # 1차 추론 요청 진행
+    res      = chain.invoke( {"query":msg})
+    # 응답 결과 반환
+    return {'messages':[ res ]}
 
 # 툴, 도구를 사용하기로 결정했다면, 실제 도구 제공 -> 외부기능 -> .... => MCP 연계 
 def tool_node( state:AgentState ):
@@ -87,16 +94,17 @@ def final_answer_node( state:AgentState ):
 # 랭그래프 연결
 workflow = StateGraph(AgentState)
 workflow.add_node('thinking',       thinking_node)
-workflow.add_node('tool',           tool_node)
-workflow.add_node('final_answer',   final_answer_node)
+#workflow.add_node('tool',           tool_node)
+#workflow.add_node('final_answer',   final_answer_node)
 workflow.set_entry_point(thinking_node) # 최초 프럼프트를 가지고 추론 진행(직접 ok, 도구 ok)
 # 조건부 엣지
 # LLM 호출을 통해서 답변 마무리, 도구를 이용하여 마무리 할지등
-def custom_check_tool_node(state:AgentState):
-    pass
-workflow.add_conditional_edges('thinking', custom_check_tool_node)
-workflow.add_edge('tool', 'final_answer') # 도구 사용 => 최종답변노드, 방향성설정
-workflow.add_edge("final_answer", END)    # 그래프이 끝 지정
+#def custom_check_tool_node(state:AgentState):
+#    pass
+#workflow.add_conditional_edges('thinking', custom_check_tool_node)
+#workflow.add_edge('tool', 'final_answer') # 도구 사용 => 최종답변노드, 방향성설정
+#workflow.add_edge("final_answer", END)    # 그래프이 끝 지정
+workflow.add_edge("thinking_node", END)
 
 # 흐름 시나리오
 # 프럼프트 => thinking => END
@@ -104,3 +112,7 @@ workflow.add_edge("final_answer", END)    # 그래프이 끝 지정
 
 # 랭그래프객체
 랭그래프객체 = workflow.compile()
+
+if __name__ == '__main__':
+    res = 랭그래프객체.invoke( { "messages": "가벼운 식사" } )  # 가벼운 식사 => 사용자 입력
+    print(  res )
