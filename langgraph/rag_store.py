@@ -35,3 +35,6 @@ def search_stores(query: str, k: int=2):
     print(f'=== [RAG 검색 결과] : {docs}')
     return "\n".join( [doc.page_content for doc in docs] )
 
+# 단위 테스트
+if __name__ == '__main__':
+    print('유사도 기반 검색 ', search_stores("가벼운 식사") )
