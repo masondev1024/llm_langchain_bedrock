@@ -15,3 +15,16 @@
     - 프럼프트
         - fewshot 활용
 '''
+# 1. 모듈 가져오기
+from langgraph.graph import StateGraph, END 
+from typing import TypedDict, List               # 커스텀 공유메모리(그래프상 노드가 공유하는) [ {}, {}, .. ]
+from langchain_core.tools import tool            # 툴 정의할때 사용 데코레이터용
+from langchain_core.messages import HumanMessage, BaseMessage
+from langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
+from langchain_aws import ChatBedrockConverse
+from langgraph.prebuilt import ToolNode, tools_condition
+from dotenv import load_dotenv
+import os
+import boto3
+# rag 추가
+from tools import rag_search                       # rag 도구를 외부에 구성, 커스텀
