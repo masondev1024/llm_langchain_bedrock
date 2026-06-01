@@ -28,3 +28,30 @@ import os
 import boto3
 # rag 추가
 from tools import rag_search                       # rag 도구를 외부에 구성, 커스텀
+
+# 환경변수 로드
+load_dotenv()
+
+# LLM 모델 구성 ChatBedrockConverse
+llm = ChatBedrockConverse(  model       = os.getenv('MODEL_ID'), 
+                            max_tokens  = 1000,
+                            temperature = 0.5,                            
+                            region_name = os.getenv('AWS_REGION')
+                        ) 
+
+# 툴 등록한 LLM 모델 획득
+tools = [ rag_search ]
+llm_with_tools = llm.bind_tools( tools )
+
+# 퓨샷 프럼프트 구성
+examples        = []
+example_format  = ChatPromptTemplate.from_messages()
+few_shot_prompt = FewShotChatMessagePromptTemplate()
+final_prompt    = ChatPromptTemplate.from_messages([
+    # 1. 페르소나
+    (),
+    # 2. 퓨샷 샘플
+    few_shot_prompt
+    # 3. 사용자 질문
+    ()
+])
