@@ -98,16 +98,16 @@ def final_answer_node( state:AgentState ):
 workflow = StateGraph(AgentState)
 workflow.add_node('thinking',       thinking_node)
 #workflow.add_node('tool',           tool_node)
-workflow.add_node('final_answer',   final_answer_node)
-workflow.set_entry_point(thinking_node) # 최초 프럼프트를 가지고 추론 진행(직접 ok, 도구 ok)
+#workflow.add_node('final_answer',   final_answer_node)
+workflow.set_entry_point('thinking') # 최초 프럼프트를 가지고 추론 진행(직접 ok, 도구 ok)
 # 조건부 엣지
 # LLM 호출을 통해서 답변 마무리, 도구를 이용하여 마무리 할지등
 #def custom_check_tool_node(state:AgentState):
 #    pass
 #workflow.add_conditional_edges('thinking', custom_check_tool_node)
 #workflow.add_edge('tool', 'final_answer') # 도구 사용 => 최종답변노드, 방향성설정
-workflow.add_edge('thinking', 'final_answer') # 방향 설정(임시)
-workflow.add_edge("final_answer", END)    # 그래프이 끝 지정
+#workflow.add_edge("final_answer", END)    # 그래프이 끝 지정
+workflow.add_edge("thinking", END)
 
 # 흐름 시나리오
 # 프럼프트 => thinking => END
