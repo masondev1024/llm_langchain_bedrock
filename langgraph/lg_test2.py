@@ -46,4 +46,34 @@ def chatbot_node(state:MessagesState):
 
 
 # 7. 그래프 구성
+# 그래프 생성
+workflow = StateGraph(MessagesState)
+# 노드 추가
+workflow.add_node('chatbot', chatbot_node)      # 프럼프트/대화 내용등 보고 생각 -> 판단 노드
+workflow.add_node('tools'  , ToolNode(tools))   # 툴에 목적을 수행(여기서 곱하기)하는 -> 행동 노드
+# 시작점 (= set_entry_point() )
+workflow.add_edge(START, 'chatbot')             # 서비스 가동 -> 프럼프트등 데이터 주입 -> 가장 먼저 작동
+# 조건에 따라 행동을 다르게 수행 구성 => 조건부 규칙 부여
+workflow.add_conditional_edges(
+    'chatbot',          # 이전 노드가 텍스트 응답을 했다면 -> END 이동
+    tools_condition     # 이전 노드가 도구가 필요하다로 응답 -> 도구 노드로 이동
+)
+# 도구사용 -> 결과 획득 -> 챗봇으로 전달 -> ...
+workflow.add_edge('tools', 'chatbot') # tools -> chatbot
+'''
+# 사이클 구성
+- 질의 -> chatbot -> llm 호출 -> 응답 -> end
+- 질의 -> chatbot -> llm 호출 -> 응답 -> 부족하고 생각 -> 도구 사용 필요성 
+      -> 툴 -> 툴사용 -> 결과 -> chatbot -> llm 호출 -> 응답 -> end
+'''
+# 그래프 실행가능하게 구성 
+app = workflow.compile()
 
+
+# 테스트
+if __name__ == '__main__':
+    while True:
+        # 1. 질의 획득
+        user_input = input('\n유저: ').lower()
+        # 2. 탈출 코드
+        if user_input== 'q': break
