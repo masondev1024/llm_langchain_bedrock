@@ -36,3 +36,18 @@ refiner_prompt = ChatPromptTemplate.from_messages([
     ('user'  , '이전 코드:\n{original_code}\n\n리뷰 내용:\n{feedback}\n\n위 내용을 반영하여 개선된 전체 코드를 다시 작성하세요'),
 ])
 
+
+# 랭체인 구성
+developer_agent = developer_prompt | llm | StrOutputParser()
+reviewer_agent  = reviewer_prompt  | llm | StrOutputParser()
+refiner_agent   = refiner_prompt   | llm | StrOutputParser()
+
+# 협업 구성
+def run_agent_collaboration( topic ):
+    # 1. 목표 로그(프럼프트) 출력
+    print(f'목표 : {topic}\n' + '='*50)
+    pass
+
+# 구동
+if __name__ == '__main__':
+    run_agent_collaboration( "사용자 비밀번호를 입력받아 DB에 저장하는 간단한 함수(보안 고려)" )
