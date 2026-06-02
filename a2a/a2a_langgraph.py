@@ -18,3 +18,30 @@
         - Conditional Edge : Reviewer Node를 타겟, Reviewer의 판정에 따라 Coder Node 갈지, End 갈지 결정
 
 '''
+# 1. 모듈가져오기
+import boto3
+from langchain_aws import ChatBedrock
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
+from langgraph.graph import StateGraph, END
+from typing import Annotated, List, TypedDict
+import operator # 수정 요청한 회수 계산을 위한 처리 => 리액트의 리듀서의 기능 담당(참고)
+import dotenv
+import os
+
+dotenv.load_dotenv()
+
+# 2. 상태 정의
+
+# 3. LLM 정의 
+
+# 4. 노드 정의 -> Agent 정의
+
+# 5. 조건부 엣지 정의
+
+# 6. 그래프 구성
+
+# 7. 실행
+if __name__ == '__main__':
+    pass
