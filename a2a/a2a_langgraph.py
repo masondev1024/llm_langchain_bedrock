@@ -6,4 +6,15 @@
        - 시작 노드 지정
        - PASS 후 종료
        - FAIL이면 다시 작성 -> 순환구조, 2개의 노드로 구성 완료 -> 신입 개발자 에이전트의 진화 (기억만 하면)
+- 아킥텍쳐
+    - Langgraph
+    - State : 대화 내용, 수정 횟수 저장하는 공유 메모리
+    - Node
+        - Coder Node    : 상태(메모리)를 읽고 코드 신규 생성/수정
+        - Reviewer Node : 코드를 검증하고 Pass/Fail 판정(리뷰 내용 전달)
+    - Edge
+        - entry_point      : Coder Node
+        - node_dir         : Coder Node -> Reviewer Node
+        - Conditional Edge : Reviewer Node를 타겟, Reviewer의 판정에 따라 Coder Node 갈지, End 갈지 결정
+
 '''
