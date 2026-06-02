@@ -70,10 +70,85 @@ def coder_node(state:AgentState ):
         "iterations" : state.get('iterations', 0) + 1
     }
 
+def reviewer_node(state:AgentState ):
+    # 전체 메세지 획득
+    msg      = state['messages']
+    # 마지막 메세지 획득
+    last_msg = state['messages'][-1] # 코더가 작성한 코드
+    # 프럼프트 
+    reviewer_prompt = ChatPromptTemplate.from_messages([
+        ('system', "당신은 까다로운 '전문 개발자'입니다. 신입 개발자가 작성한 코드를 엄격하게 리뷰하세요.\n"
+                   "보안 취약점, 비효율적인 부분, 스타일 가이드등를 점검하고 수정 제안을 하세요.\n"
+                   "코드가 완벽하고, 보안 문제가 없다면 반드시 'PASS'라고만 답하세요.\n"
+                   "문제가 있다면 'FAIL'이라고 적고, 구체적인 수정 지시사항을 남기세요." 
+                    ),
+        ('user'  , '다음 코드를 리뷰해주세요:\n\n{code}'),
+    ])
+    # 랭체인 연결
+    chain = reviewer_prompt | llm
+    # 이전 코드를 삽입하여 프럼프트 구성하여 llm 호출
+    review = chain.invoke( {"code":last_msg.content} )
+    # 반복회수 x
+    return {'messages':[review]}
+
 # 5. 조건부 엣지 정의
+def is_continue(state:AgentState):
+    msg      = state['messages']
+    # 현 시점의 최종 메세지
+    last_msg = state['messages'][-1].content
+    # 최종 상태의 시도 횟수
+    iterations = state['iterations']
+
+    # 1. 안정장치, 무제한으로 풀면 => 토큰을 무제한 사용 => 비용 폭탄
+    if iterations >= 3: # 최대 3번만 반복
+        print('-- [System] 최대 반복 횟수 도달. 추론 행위를 종료합니다. --')
+        return 'my_end'
+    
+    # 2. 리뷰 통과 여부 체크 
+    if "PASS" in last_msg: # 메세지중에 존재함 하면 종료
+        print('-- [System] 축하합니다. 리뷰 통과. 추론 행위를 종료합니다. --')
+        return 'my_end'
+    
+    # 3. 다시 수정 작성
+    print('-- [System] 리뷰 거절. 다시 작성자에게 보냅니다. (FAIL) --')
+    return 'gogo'
+
+    pass
 
 # 6. 그래프 구성
+# 그래프 뼈대 준비
+workflow = StateGraph(AgentState)
+# 노드 등록
+workflow.add_node('coder',     coder_node)
+workflow.add_node('reviewer',  reviewer_node)
+# 시작점 등록
+workflow.set_entry_point('coder')
+# 방향성 (무조건 이동)
+workflow.add_edge('coder', 'reviewer')
+# 조건부 엣지
+workflow.add_conditional_edges('reviewer', is_continue, {
+    'my_end':END,    # 매핑을 통해서 문자열 => 특정 노드, 행위로 대체할 수 있음
+    'gogo'  :'coder' # 다시 수정
+})
+# 랭그래프 구성완료
+app = workflow.compile()
 
 # 7. 실행
 if __name__ == '__main__':
-    pass
+    # 초기 질문
+    # 반복 행위를 위해서 비효적인 주문 제시
+    initial_input ='리스트에서 중복을 제거하고, 정렬하는 파이썬 함수를 만들어줘. 단, 좀 비효율적으로 작성해줘'
+    # 초기 상태값 구성
+    inputs = {
+        'messages': [HumanMessage(content=initial_input)],
+        'iterations' : 0
+    }
+    print( '시작요청', inputs )
+
+    # 과정을 확인하고 싶다 => stream
+    for output in app.stream( inputs ):
+        print('-'*70+'\n')
+        print(output)
+        print('\n'+'-'*70)
+    
+    print('수행 완료')
