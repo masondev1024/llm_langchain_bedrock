@@ -96,13 +96,18 @@ def tool_node( state:AgentState ):
         last_msg.tool_calls[
            {
                'name':'rag_search',
-               'agrs':{'cate':'가벼운 식사'},
+               'args':{'cate':'가벼운 식사'},
                'id'  :'tooluse-zfwefewfwecvwerfwec',
                'type':'tool_call'
            }
         ]
        '''
-
+       # 툴사용(rag 수행)
+       result = rag_search.invoke( tool['args'] ) # 사용자가 질문한 내용을 추출하여 호출
+       print( 'RAG 호출 결과 : ', result )
+       return {"messages":[
+           HumanMessage(content=f'[사내데이터 검색결과]: {result}\n 제공된 정보를 기반으로 최종 답변을 해주세요.')
+       ]}
     # 보험용
     return {"messages":[]}
 
