@@ -41,10 +41,22 @@ class AgentState(TypedDict):
     messages   : Annotated[ List[BaseMessage], operator.add ]
     # 재시도 회수, 리뷰등을 통해 수정 내용 발생시 최대 순환 수정 회수 제한 비교용
     iterations : int
-    
+
 # 3. LLM 정의 
+llm = ChatBedrock( model_id = os.getenv('MODEL_ID'),
+    client       = boto3.client('bedrock-runtime', region_name=os.getenv('AWS_REGION') ),
+    model_kwargs = {"temperature":0.5}
+)
 
 # 4. 노드 정의 -> Agent 정의
+#    함수형태로 통합 구성 (프럼프트, 랭체인 구성, 추론요청, 결과반환(생략) )
+def coder_node(state:AgentState ):
+    # 메세지 추출 (최초 사용자, 이전 노드의 출력)
+    # 프럼프트 구성
+    # 랭체인 구성 (프럼프트=>llm) -> 에이전트 실체
+    # 추론 행위 요청 -> 실제 추론 행위 실행
+    # 응답값 결과 처리 (대화 메세지 정리, 수정 시도 횟수 업데이트)
+    pass
 
 # 5. 조건부 엣지 정의
 
