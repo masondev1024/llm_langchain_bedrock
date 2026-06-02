@@ -97,14 +97,25 @@ def final_answer_node( state:AgentState ):
 # 랭그래프 연결
 workflow = StateGraph(AgentState)
 workflow.add_node('thinking',       thinking_node)
-#workflow.add_node('tool',           tool_node)
+workflow.add_node('tool',           tool_node)
 #workflow.add_node('final_answer',   final_answer_node)
 workflow.set_entry_point('thinking') # 최초 프럼프트를 가지고 추론 진행(직접 ok, 도구 ok)
+
 # 조건부 엣지
 # LLM 호출을 통해서 답변 마무리, 도구를 이용하여 마무리 할지등
-#def custom_check_tool_node(state:AgentState):
-#    pass
-#workflow.add_conditional_edges('thinking', custom_check_tool_node)
+def custom_check_tool_node(state:AgentState):
+    # thinking 작업 마무리 -> 답변이 충분 -> END
+    # 부족하니 => 도구 => tool : (컨텍스트 추가(검색증강을 통해서 부속적인 내용 추가) => LLM 추론)
+    # 마지막메세지 : AI응답 => tool_calls 값 체크
+    last_msg = state['messages'][-1] 
+    # 툴 사용여부 체크 
+    if last_msg.tool_calls: 
+       print('툴 사용 필요')
+       return 'tool'
+    # 툴 사용 필요 없다 => 답변이 완벽하다 => END
+    return END
+workflow.add_conditional_edges('thinking', custom_check_tool_node)
+
 #workflow.add_edge('tool', 'final_answer') # 도구 사용 => 최종답변노드, 방향성설정
 #workflow.add_edge("final_answer", END)    # 그래프이 끝 지정
 workflow.add_edge("thinking", END)
