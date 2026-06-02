@@ -32,8 +32,16 @@ import os
 
 dotenv.load_dotenv()
 
-# 2. 상태 정의
-
+# 2. 상태 정의 (메세지-messages, 재시도횟수-iterations, AgentState)
+class AgentState(TypedDict):
+    # Annotated[ ... ] : 메타데이터 표기
+    # 타입힌트 제시, operator.add 전달 -> 상태 업데이트 방식 명확하게 지정 
+    # 덮어쓰지 말고, 기존 내용에 새로운 내용을 추가하라
+    # 대화를 기억하는 방법을 => 누적하여 보관
+    messages   : Annotated[ List[BaseMessage], operator.add ]
+    # 재시도 회수, 리뷰등을 통해 수정 내용 발생시 최대 순환 수정 회수 제한 비교용
+    iterations : int
+    
 # 3. LLM 정의 
 
 # 4. 노드 정의 -> Agent 정의
