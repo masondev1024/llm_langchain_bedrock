@@ -84,7 +84,27 @@ def thinking_node( state:AgentState ):
 
 # 툴, 도구를 사용하기로 결정했다면, 실제 도구 제공 -> 외부기능 -> .... => MCP 연계 
 def tool_node( state:AgentState ):
-    pass
+    # RAG를 이용한 검색 증강 => LLM이 모르는 데이터를 프럼프트에 반영하여 추론 요청하는 과정
+    last_msg = state['messages'][-1] 
+    print('tool_node 호출 : 툴 사용 LLM이 응답', last_msg.tool_calls)
+    if last_msg.tool_calls:
+       # 툴획득
+       # 등록된 도구가 1개라는 것을 알기 대문에 0으로 고정 => 도구가 많아지면 상황에 따른 선택 부여(용도는 정해져 있음)
+       tool = last_msg.tool_calls[0] 
+       # last_msg.tool_calls 세팅되었을대 값 (아래 샘플)
+       '''
+        last_msg.tool_calls[
+           {
+               'name':'rag_search',
+               'agrs':{'cate':'가벼운 식사'},
+               'id'  :'tooluse-zfwefewfwecvwerfwec',
+               'type':'tool_call'
+           }
+        ]
+       '''
+
+    # 보험용
+    return {"messages":[]}
 
 # 검색 결과를 바탕으로 최종 답변 추론
 # 실제는 다시 thinking_node로 다시 가서 최종 구성해도됨.
@@ -98,7 +118,7 @@ def final_answer_node( state:AgentState ):
 workflow = StateGraph(AgentState)
 workflow.add_node('thinking',       thinking_node)
 workflow.add_node('tool',           tool_node)
-#workflow.add_node('final_answer',   final_answer_node)
+workflow.add_node('final_answer',   final_answer_node)
 workflow.set_entry_point('thinking') # 최초 프럼프트를 가지고 추론 진행(직접 ok, 도구 ok)
 
 # 조건부 엣지
@@ -115,10 +135,8 @@ def custom_check_tool_node(state:AgentState):
     # 툴 사용 필요 없다 => 답변이 완벽하다 => END
     return END
 workflow.add_conditional_edges('thinking', custom_check_tool_node)
-
-#workflow.add_edge('tool', 'final_answer') # 도구 사용 => 최종답변노드, 방향성설정
-#workflow.add_edge("final_answer", END)    # 그래프이 끝 지정
-workflow.add_edge("thinking", END)
+workflow.add_edge('tool', 'final_answer') # 도구 사용 => 최종답변노드, 방향성설정
+workflow.add_edge("final_answer", END)    # 그래프이 끝 지정, 추론의 마무리
 
 # 흐름 시나리오
 # 프럼프트 => thinking => END
