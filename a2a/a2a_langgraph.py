@@ -55,16 +55,20 @@ def coder_node(state:AgentState ):
     msg = state['messages']
     # 프럼프트 구성
     coder_prompt = ChatPromptTemplate.from_messages([
-        ('system', '당신은 "초보 파이썬 개발자"입니다. 요청받은 기능을 구현하는 코드를 작성하세요. 리뷰어의 피드백이 있다면 그것을 반영하여 코드를 수정하시오'),
-        ('user'  , '{messages}'),
+        ('system',      '당신은 "초보 파이썬 개발자"입니다. 요청받은 기능을 구현하는 코드를 작성하세요. 리뷰어의 피드백이 있다면 그것을 반영하여 코드를 수정하시오'),
+        # 해당 메세제가. HumanMessage, AIMessage, SystemMessage or  형태를 잘 모르겠다 => 알아서 세팅 placeHolder
+        ('placeHolder', '{messages}'),
     ])
     # 랭체인 구성 (프럼프트=>llm) -> 에이전트 실체
     chain = coder_prompt | llm
     # 추론 행위 요청 -> 실제 추론 행위 실행
     draft_code = chain.invoke( {"messages":msg} )
-    
+
     # 응답값 결과 처리 (대화 메세지 정리, 수정 시도 횟수 업데이트)
-    pass
+    return {
+        "messages"   : [draft_code],
+        "iterations" : state.get('iterations', 0) + 1
+    }
 
 # 5. 조건부 엣지 정의
 
