@@ -212,3 +212,6 @@ llm_venv
 # Local agent/runtime state
 .omx/
 .omc/
+
+# Local study notes
+PROJECT_UNDERSTANDING_GUIDE.md
