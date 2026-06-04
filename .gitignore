@@ -208,3 +208,7 @@ __marimo__/
 
 # 가상환경제외
 llm_venv
+
+# Local agent/runtime state
+.omx/
+.omc/

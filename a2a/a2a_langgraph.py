@@ -43,7 +43,11 @@ class AgentState(TypedDict):
     iterations : int
 
 # 3. LLM 정의 
-llm = ChatBedrock( model_id = os.getenv('MODEL_ID'),
+model_id = os.getenv("MODEL_ID")
+
+if not model_id:
+    raise ValueError("MODEL_ID가 .env에 설정되어 있지 않습니다.")
+llm = ChatBedrock(model=model_id,
     client       = boto3.client('bedrock-runtime', region_name=os.getenv('AWS_REGION') ),
     model_kwargs = {"temperature":0.5}
 )

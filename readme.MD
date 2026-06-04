@@ -204,3 +204,37 @@ L llm/__init__.py             : bedrock 통신 모듈
         - https://github.com/modelcontextprotocol
     - 결론
         - AI 어플리케이션의 도구(툴) 통합을 표준화, 간소화
+
+- 전체 아키텍처
+```
+# 비동기 처리 필수 ( async, await등)
+사용자 -> 프롬프트 -> 랭체인/랭크래프 -> LLM 판단 -> 도구사용필요 -> 도구목록 선택 -> 외부도구(MCP 요청, MCP Client) -> Adapter(python->JSON-RPC 2.0) -> MCP Server -> 비즈니스 로직 -> 응답 -> (JSON-RPC 2.0 -> python) -> MCP Client 응답 -> LLM 응답 -> 다음 노드(단계) 진행 -> ...
+=> 성능 평가 , 데이터 흐름, 트래킹, 관리 => 랭스미스
+```
+
+# 구현
+## 필요 패키지 설치
+```
+fastapi
+uvicorn
+streamlit
+requests
+boto3
+langchain-aws
+langchain-core
+python-dotenv
+langchain-community
+faiss-cpu
+langchain
+langgraph
+mcp==1.27.2
+botocore
+langsmith
+pydantic
+
+# 가상환경 활성화 -> 설치
+python install -r requirements.txt
+```
+## 1단계 심플 구성
+- 통신 집중
+    - MCP Client

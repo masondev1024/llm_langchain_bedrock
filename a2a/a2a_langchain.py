@@ -11,7 +11,12 @@ dotenv.load_dotenv()
 
 # LLM 생성, 차후 에이전트별로 역활에 따라 최적의 LLM 배치 할수 있음
 # 모든 에이전트가 모두 사용. 페르소나에 따라 역활, 성능 조정할 수 있다
-llm = ChatBedrock( model_id = os.getenv('MODEL_ID'),
+model_id = os.getenv("MODEL_ID")
+
+if not model_id:
+    raise ValueError("MODEL_ID가 .env에 설정되어 있지 않습니다.")
+
+llm = ChatBedrock(model=model_id,
     client       = boto3.client('bedrock-runtime', region_name=os.getenv('AWS_REGION') ),
     model_kwargs = {"temperature":0.7}
 )
