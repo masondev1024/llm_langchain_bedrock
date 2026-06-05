@@ -1,111 +1,115 @@
 '''
-MCP Client
-    - 구동시 관련 파일 외에는 프로젝트 폴더에 없어야 함 => 실행하는 루트 디렉토리를 클리어 하게 사용
 MCP Server 와 통신
+MCP에서 정의한 Tool을 Langchain/LangGraph 용 Tool로 변환 처리
+LLM이 해당 도구에 대한 이해와, 사용 판단에 정확한 정보를 제공
 '''
 # 1. 모듈 가져오기
 import asyncio
-import json
+from typing import Optional
 import sys
 from mcp import ClientSession, StdioServerParameters # 커넥션 담당
 from mcp.client.stdio import stdio_client # 입력, 출력을 가진 클라이언트
+from langchain_core.tools import StructuredTool
+from pydantic import BaseModel, Field, create_model
 
-# 2. MCPClient 클레스 구성
-class MCPClient:
-    '''MCP Server와 통신하는 클레스(역활:클라이언트)'''
+
+# 2. MCPToolAdapter
+class MCPToolAdapter:
+    '''MCP Server와 통신. Langchain/LangGraph Tool로 변환 제공'''
     # 생성자
     def __init__(self, server_script: str = 'server.py'):
-        '''
-        Args:
-            server_script: 실행할 Server측 스크립트 경로
-        '''
-        self.server_script = server_script
-        self.tools = [] # MCP 서버에게 툴 목록 가져와서 저장
+        self.server_script  = server_script
+        self.mcp_tools      = [] # mcp Tool
+        self.tools          = [] # MCP 서버에게 툴 목록 가져와서 저장
+        self.read_stream    = None # 입력 스트림
+        self.write_stream   = None # 출력 스트림
+        self.session: Optional[ClientSession] = None # 세선 멤버변수 -> 여러 함수에서 사용하겠다.
+        self._studio_context = None # 입출력에 관련한 내부적 프로세스 접근을 위한 컨텍스트
         pass
-    
-    # 실제 일을 수행하는 함수
-    async def run(self):
-        print(f'MCP Server 접속중...')
-        # Server 접속시 필요한 정보 세팅
+    # 초기화
+    async def initialize( self ):
+        '''MCP Server 연결, Tool 로드'''
+        # MCP Server 접속시 필요한 정보 세팅
         server_params = StdioServerParameters(
-            command = sys.executable,
-            args    = [self.server_script],
+            command= sys.executable,
+            args= [self.server_script],
             env     = None
         )
-        print(f'sys.executable {sys.executable} server_script {self.server_script}')
-        # 접속 -> I/O -> 예외상황 발생될수 있음
+        # 메세지가 오염 되면 => 출력을 sys.std
+        print('MCP 서버 연결중..')
         try:
-            async with stdio_client(server_params) as (read, write):
-                async with ClientSession(read, write) as session:
-                    print(f'MCP 서버 연결 성공 : 서버측으로부터 입력, 출력에 대한 객체 획득')
-                    # 1. 세션 초기화
-                    await session.initialize()
-                    # 2. 사용 가능한 모든 도구 조회
-                    print(f'MCP 서버측에 도구 목록 요청')
-                    res = await session.list_tools()
-                    self.tools = res.tools
-                    print(f'{len(self.tools)}개의 도구 확인됨.')#, self.tools[0])
-                    for i, tool in enumerate(self.tools, 1):
-                        print( f'   {i}. {tool.name}')
-                        print( f'   설명: {tool.description}')
-                        # 파라미터(매개변수) 정보 추출 => 스키마 => 매개변수명, 타입
-                        if hasattr(tool, "inputSchema") and tool.inputSchema: # 해당맴버가 있는가? -> 값은 있는가?
-                            props = tool.inputSchema.get('properties', {}) # 키->값 추출 (인덱싱), 비워있는 경우 대비 초기값 부여
-                            if props:
-                                print( f'   입력: { ", ".join(props.keys()) } ') # a, b
-
-                        print('-'*30 + '\n')
-
-                    print('\n'+'-'*30)
-                    print('도구 호출 테스트')
-                    print('-'*30 + '\n')
-                    await self.call_tool( session, "add",         {"a":100, "b":5} )
-                    await self.call_tool( session, "get_time",    {} )
-                    await self.call_tool( session, "save_note",   {"note_id":"de-001", "note_content":"MCP 1"} )
-                    await self.call_tool( session, "save_note",   {"note_id":"de-002", "note_content":"MCP 2"} )
-                    await self.call_tool( session, "list_note",   {} )
-                    await self.call_tool( session, "delete_note", {"note_id":"de-001"} )
-                    await self.call_tool( session, "list_note",   {} )
-
-                    print('\n'+'-'*30)
-                    print('도구 호출 테스트 완료')
-                    print('-'*30 + '\n')
-
-        except Exception as e:
-            print( f'MCP Server 접속 오류 : {e}' )
-        pass
-    
-    # MCP 서버에 존재하는 도구를 호출하는 함수
-    async def call_tool(self, session, tool_name: str, arguments: dict):
-        try:
-            print(f' {tool_name} 도구 사용')
-            print(f' 인자 {arguments}')
-            result = await session.call_tool(tool_name, arguments)
-            # 결과 출력
-            # print(f'결과출력 : {result}')
-            if hasattr(result, 'content') and result.content:
-                for content in result.content:
-                    if hasattr(content, 'text'):
-                        print(f" 결과 : \n {content.text}\n")
-                    else: 
-                        print(f" 결과 : \n {content}\n")
+            # 입력, 출력, 세션등, 여러 함수에서 사용한다면 with x
+            # MCP 서버를 접속할 때 사용하는 내부 컨텍스트 객체
+            self._studio_context = stdio_client(server_params)
+            # 내부 함수를 강제로 호출(내가 원하는 시점에 처리)
+            stdio_tuple = await self._studio_context.__aenter__() 
+            # 입력/출력 스트림 획득
+            if isinstance( stdio_tuple, tuple):
+                self.read_stream, self.write_stream = stdio_tuple
             else:
-                print(f" 결과 : \n {result}\n")
-            return result
-        except Exception as e:
-            print( f'에러 발생 {e}' )
+                self.read_stream = stdio_tuple
+                self.write_stream = stdio_tuple
+
+            # 세션 획득 => Tool을 가져올수 있음
+            # JSON RPC 2.0 기준 상호 통신할 수 있는 논리적인 
+            self.session = ClientSession(self.read_stream, self.write_stream)
+            # 실제 활성화를 위해 직접 호출
+            await self.session.__aenter__()
+            # 세션 초기화
+            await self.session.initialize()
+            # MCP 서버에게 Tool 목록 요청
+            res = await self.session.list_tools()
+            self.mcp_tools = res.tools
+            print(f'MCP 서버로부터 {len(self.mcp_tools)}개의 Tool 로드됨')
+
+            return self
+
+        except Exception as e : 
+            print('MCP Server 연결 실패',e)
             raise
-        pass
+    # MCP tool -> langchain/langgraph tool 변환
+    def create_langchain_tools(self) -> list:
+        langchain_tools = list()
 
-# 3. 비동기 main 함수 구성
-async def main():
-    '''비동기식 메인 함수'''
-    # MCPClient 객체 생성
-    client = MCPClient()
-    # 가동
-    await client.run()
+        # 툴 순회
+        for mcp_tool in self.mcp_tools:
+            # 툴 이름
+            tool_name = mcp_tool.name
+            tool_description = mcp_tool.description
+            print( tool_name, tool_description )
+            # 툴 설명
+            pass
 
-# 4. 비동기 함수 호출 -> MCP 서버 연동
+        return langchain_tools
+
+    async def cleanup(self):
+        '''입력/출력 스트림, 세션등 지원 해제(개발자 관리)'''
+        # 세션이 존재하면 -> 세션 종료
+        try:
+            if self.session:
+                await self.session.__aexit__(None,None,None)
+        except Exception as e:
+            print('세션 종료 에러',e)
+        # 컨텍스트가 존재하면 -> 입력/출력 스트림 종료
+        try:
+            if self._studio_context:
+                await self._studio_context.__aexit__(None,None,None)
+        except Exception as e:
+            print('입력/출력 스트림 종료 에러',e)
+
+# 4. 테스트
 if __name__ == '__main__':
-    # 비동기로 함수를 호출
-    asyncio.run( main() )
+    # 단위 테스트
+    async def test():
+        adapter = MCPToolAdapter('server.py')
+        # 초기화
+        await adapter.initialize()
+
+        # MCP tool -> langchain/langgraph tool 변환
+        tools = adapter.create_langchain_tools()
+
+        # 해제
+        await adapter.cleanup()
+    
+    asyncio.run(test())
+    pass
